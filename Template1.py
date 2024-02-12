@@ -1,12 +1,14 @@
 #
 # Simple template for minimalist derivational search function
-# with set-theoretical bare phrase structure as a basis,
-# for illustration
+# with binary-branching set-theoretical bare phrase structure (Chomsky 2008)
+# as a basis, for illustration and a starting point
+# Head algorithm as well as linearization are absent, since
+# both are nontrivial to write
 #
 
 import itertools    #   module for simple combinatorial operations
 
-# Lexicon will be a simple dictionary with lexical features provided as sets (currently empty)
+# Lexicon is a dictionary with lexical features provided as sets (currently empty)
 lexicon = {'a': set(),
            'b': set(),
            'c': set(),
@@ -15,7 +17,7 @@ lexicon = {'a': set(),
 # Class which defines the phrase structure formalism
 class PhraseStructure:
     def __init__(self, X=None, Y=None):
-        self.constituents = {X, Y}      # Daughter constituents
+        self.const = {X, Y}             # Daughter constituents
         self.phon = ''                  # Name
         self.features = None            # Set of features, generated from lexical items
 
@@ -25,7 +27,7 @@ class PhraseStructure:
 
     # A zero-level category is one that lacks at least one daughter constituent
     def zero_level(self):
-        return self.constituents & {None}
+        return self.const & {None}
 
     # Auxiliary function which maps phrase structure objects into symbolic printouts
     def __str__(self):
@@ -34,7 +36,7 @@ class PhraseStructure:
             str = self.phon
         else:
             str += '{'
-            for const in self.constituents:
+            for const in self.const:
                 str = str + f' {const} '
             str += '}'
         return str
@@ -54,19 +56,19 @@ class SpeakerModel:
 
     # A wrapper function for the derivational search function
     # which performs auxiliary tasks and initializes the derivation
+    # with the numeration constructed from the input sentence
     def derive(self, sentence):
         self.n_derivations = 0
         self.derivational_search_function({self.LexicalRetrieval(item) for item in sentence.split(' ')})
 
     # Searches through all derivations defined by the grammar (here, Merge)
     def derivational_search_function(self, sWM):
-        if len(sWM) == 1:                               #   If there is only one phrase structure object in the working memory
-            self.final_output(next(iter(sWM)))          #   stop the derivation and consider it a finished derivation,
-        else:                                           #   else continue the derivation:
-            for pair in itertools.combinations(sWM, 2): #   (1) get all combinations of two objects in the working memory
-                for OP in self.syntactic_operations:    #   (2) consider all syntactic operations available in the grammar
-                    # Apply (2) to (1) and continue the derivation (recursive branching)
-                    self.derivational_search_function({SO for SO in sWM if SO not in {pair[0], pair[1]}} | {OP(pair[0], pair[1])})
+        if len(sWM) == 1:                                   #   If there is only one phrase structure object in the working memory
+            self.final_output(next(iter(sWM)))              #   stop the derivation and consider it a finished derivation,
+        else:                                               #   else continue the derivation:
+            for X, Y in itertools.combinations(sWM, 2):     #   (1) get all combinations of two objects in the working memory
+                for OP in self.syntactic_operations:        #   (2) consider all syntactic operations available in the grammar
+                    self.derivational_search_function({SO for SO in sWM if SO not in {X, Y}} | {OP(X, Y)})
 
     # Processes all complete derivations, in this case prints them out
     def final_output(self, solution):
